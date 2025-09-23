@@ -102,8 +102,12 @@ body {
 }
 
 .button-container {
-    width: 300px;
+    display: flex;
     justify-content: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 600px;
+    margin-top: 20px;
 }
 
 /* Estilos de entrada de texto */
@@ -160,8 +164,9 @@ ul {
 .button-draw {
     display: flex;
     align-items: center;
-    width: 100%;
-    padding: 10px 40px;
+    justify-content: center;
+    width: auto;
+    padding: 10px 30px;
     color: var(--color-white);
     background-color: var(--color-button);
     font-size: 16px;
