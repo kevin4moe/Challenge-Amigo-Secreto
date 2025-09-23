@@ -1,24 +1,36 @@
 // Arreglo para almacenar la lista de amigos
 let amigos = [];
 
+// Obtener referencias a los elementos del DOM para no tener que buscarlos cada vez
+const nombreInput = document.getElementById('amigo');
+const errorMessage = document.getElementById('error-message');
+
+// --- Event listener para la tecla "Enter" ---
+nombreInput.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        agregarAmigo();
+    }
+});
+
 /**
  * Agrega un amigo a la lista.
  */
 function agregarAmigo() {
-    // Obtener el nombre del amigo desde el input
-    let nombreInput = document.getElementById('amigo');
-    let nombre = nombreInput.value.trim(); // .trim() elimina espacios en blanco al inicio y final
+    let nombre = nombreInput.value.trim();
+
+    // --- LÓGICA DE VALIDACIÓN MEJORADA ---
+    // Limpiar errores previos
+    limpiarErrores();
 
     // Validar que el campo no esté vacío
     if (nombre === '') {
-        alert('Por favor, ingresa el nombre de un amigo.');
+        mostrarError('Por favor, ingresa el nombre de un amigo.');
         return; // Detiene la ejecución de la función
     }
 
-    // Validar que el nombre no esté ya en la lista (insensible a mayúsculas/minúsculas)
+    // Validar que el nombre no esté ya en la lista
     if (amigos.map(amigo => amigo.toLowerCase()).includes(nombre.toLowerCase())) {
-        alert('Este nombre ya ha sido agregado. Por favor, introduce un nombre diferente.');
-        nombreInput.value = ''; // Limpiar el input
+        mostrarError('Este nombre ya ha sido agregado.');
         return;
     }
 
@@ -46,16 +58,13 @@ function sortearAmigo() {
     // Barajar (desordenar) la lista de amigos
     barajar(amigos);
     
-    // Obtener el elemento de la lista de resultados
     const listaResultados = document.getElementById('resultado');
     listaResultados.innerHTML = ''; // Limpiar resultados anteriores
 
     // Asignar los amigos secretos
     for (let i = 0; i < amigos.length; i++) {
-        // El último amigo de la lista le regala al primero
         let amigoSecreto = (i === amigos.length - 1) ? amigos[0] : amigos[i + 1];
         
-        // Crear el elemento de lista y añadirlo al HTML
         const itemResultado = document.createElement('li');
         itemResultado.textContent = `${amigos[i]} --> ${amigoSecreto}`;
         listaResultados.appendChild(itemResultado);
@@ -73,12 +82,12 @@ function actualizarListaAmigos() {
         const item = document.createElement('li');
         item.textContent = amigos[i];
         
-        // Opcional: Añadir un botón para eliminar amigos
+        // Permite eliminar un amigo al hacer clic sobre su nombre
         item.addEventListener('click', function() {
             eliminarAmigo(i);
         });
-        item.style.cursor = 'pointer'; // Cambia el cursor para indicar que es clickeable
-        item.title = 'Haz clic para eliminar'; // Mensaje al pasar el mouse
+        item.style.cursor = 'pointer';
+        item.title = 'Haz clic para eliminar';
 
         lista.appendChild(item);
     }
@@ -89,10 +98,9 @@ function actualizarListaAmigos() {
  * @param {number} index - El índice del amigo a eliminar.
  */
 function eliminarAmigo(index) {
-    amigos.splice(index, 1); // Elimina 1 elemento en la posición 'index'
-    actualizarListaAmigos(); // Vuelve a renderizar la lista
+    amigos.splice(index, 1);
+    actualizarListaAmigos();
 }
-
 
 /**
  * Función para barajar un arreglo (algoritmo Fisher-Yates).
@@ -101,7 +109,7 @@ function eliminarAmigo(index) {
 function barajar(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]]; // Intercambio de elementos
+        [array[i], array[j]] = [array[j], array[i]];
     }
 }
 
@@ -112,5 +120,23 @@ function reiniciar() {
     amigos = [];
     document.getElementById('listaAmigos').innerHTML = '';
     document.getElementById('resultado').innerHTML = '';
-    document.getElementById('amigo').focus();
+    limpiarErrores();
+    nombreInput.focus();
+}
+
+/**
+ * Muestra un mensaje de error en la UI.
+ * @param {string} mensaje - El mensaje de error a mostrar.
+ */
+function mostrarError(mensaje) {
+    errorMessage.textContent = mensaje;
+    nombreInput.classList.add('input-error');
+}
+
+/**
+ * Limpia los mensajes y estilos de error.
+ */
+function limpiarErrores() {
+    errorMessage.textContent = '';
+    nombreInput.classList.remove('input-error');
 }
