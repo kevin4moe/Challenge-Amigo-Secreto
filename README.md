@@ -36,14 +36,15 @@ No necesitas instalar nada para ejecutar este proyecto. Solo sigue estos sencill
 
 1.  **Clona el repositorio:**
     ```bash
-    git clone https://github.com/tu-usuario/tu-repositorio.git
+    git clone https://github.com/kevin4moe/Challenge-Amigo-Secreto
     ```
 2.  **Navega al directorio del proyecto:**
     ```bash
-    cd tu-repositorio
+    cd Challenge-Amigo-Secreto
     ```
 3.  **Abre el archivo `index.html` en tu navegador web preferido.**
 
 ¡Y listo\! Ya puedes empezar a añadir a tus amigos y realizar el sorteo.
+
 
 -----
