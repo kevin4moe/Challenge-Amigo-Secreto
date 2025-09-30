@@ -1,67 +1,146 @@
+// --- START FIREBASE CONFIG ---
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyAroTkJiJdQxbwQ39AHwSde68nS_RL9ndE",
+    authDomain: "amigosecretoapp-ad6ac.firebaseapp.com",
+    projectId: "amigosecretoapp-ad6ac",
+    storageBucket: "amigosecretoapp-ad6ac.firebasestorage.app",
+    messagingSenderId: "46494999571",
+    appId: "1:46494999571:web:807a354858c3f674554be6",
+    measurementId: "G-6Y9Z899EXK"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+let currentUser = null;
+
+// --- END FIREBASE CONFIG ---
+
+
 // Arreglo para almacenar la lista de amigos
 let amigos = [];
 
-// Obtener referencias a los elementos del DOM para no tener que buscarlos cada vez
+// Obtener referencias a los elementos del DOM
 const nombreInput = document.getElementById('amigo');
 const errorMessage = document.getElementById('error-message');
+const authContainer = document.getElementById('auth-container');
 
-// --- Event listener para la tecla "Enter" ---
+// --- Event listener for "Enter" key ---
 nombreInput.addEventListener('keydown', function(event) {
     if (event.key === 'Enter') {
         agregarAmigo();
     }
 });
 
+// --- FIREBASE AUTHENTICATION ---
+
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        // User is signed in
+        currentUser = user;
+        updateAuthUI(user);
+        await loadFriends();
+    } else {
+        // User is signed out
+        currentUser = null;
+        updateAuthUI(null);
+        amigos = [];
+        actualizarListaAmigos();
+    }
+});
+
+function signInWithGoogle() {
+    auth.signInWithPopup(provider).catch((error) => {
+        console.error("Error during sign-in:", error);
+    });
+}
+
+function signOut() {
+    auth.signOut().catch((error) => {
+        console.error("Error during sign-out:", error);
+    });
+}
+
+function updateAuthUI(user) {
+    if (user) {
+        authContainer.innerHTML = `
+            <div>
+                <p>Welcome, ${user.displayName}</p>
+                <button onclick="signOut()">Sign Out</button>
+            </div>
+        `;
+    } else {
+        authContainer.innerHTML = '<button onclick="signInWithGoogle()">Sign in with Google</button>';
+    }
+}
+
+// --- FIREBASE DATABASE OPERATIONS ---
+
+async function saveFriends() {
+    if (currentUser) {
+        await db.collection('users').doc(currentUser.uid).set({ amigos: amigos });
+    }
+}
+
+async function loadFriends() {
+    if (currentUser) {
+        const doc = await db.collection('users').doc(currentUser.uid).get();
+        if (doc.exists) {
+            amigos = doc.data().amigos || [];
+            actualizarListaAmigos();
+        }
+    }
+}
+
 /**
- * Agrega un amigo a la lista.
+ * Adds a friend to the list.
  */
-function agregarAmigo() {
+async function agregarAmigo() {
+    if (!currentUser) {
+        alert("Please sign in to add friends.");
+        return;
+    }
     let nombre = nombreInput.value.trim();
 
-    // --- LÓGICA DE VALIDACIÓN MEJORADA ---
-    // Limpiar errores previos
     limpiarErrores();
 
-    // Validar que el campo no esté vacío
     if (nombre === '') {
         mostrarError('Por favor, ingresa el nombre de un amigo.');
-        return; // Detiene la ejecución de la función
+        return;
     }
 
-    // Validar que el nombre no esté ya en la lista
     if (amigos.map(amigo => amigo.toLowerCase()).includes(nombre.toLowerCase())) {
         mostrarError('Este nombre ya ha sido agregado.');
         return;
     }
 
-    // Agregar el amigo al arreglo
     amigos.push(nombre);
-
-    // Actualizar la lista de amigos en la pantalla
+    await saveFriends(); // Save to Firebase
     actualizarListaAmigos();
 
-    // Limpiar el campo de entrada y poner el foco de nuevo en él
     nombreInput.value = '';
     nombreInput.focus();
 }
 
 /**
- * Realiza el sorteo del amigo secreto.
+ * Performs the secret friend draw.
  */
 function sortearAmigo() {
-    // Validar que haya suficientes amigos para el sorteo
     if (amigos.length < 3) {
         alert('Debes agregar al menos 3 amigos para realizar el sorteo.');
         return;
     }
     
-    // Barajar (desordenar) la lista de amigos
     barajar(amigos);
     
     const listaResultados = document.getElementById('resultado');
-    listaResultados.innerHTML = ''; // Limpiar resultados anteriores
+    listaResultados.innerHTML = '';
 
-    // Asignar los amigos secretos
     for (let i = 0; i < amigos.length; i++) {
         let amigoSecreto = (i === amigos.length - 1) ? amigos[0] : amigos[i + 1];
         
@@ -72,17 +151,16 @@ function sortearAmigo() {
 }
 
 /**
- * Actualiza la visualización de la lista de amigos en el HTML.
+ * Updates the display of the friends list in the HTML.
  */
 function actualizarListaAmigos() {
     const lista = document.getElementById('listaAmigos');
-    lista.innerHTML = ''; // Limpiar la lista actual
+    lista.innerHTML = '';
     
     for (let i = 0; i < amigos.length; i++) {
         const item = document.createElement('li');
         item.textContent = amigos[i];
         
-        // Permite eliminar un amigo al hacer clic sobre su nombre
         item.addEventListener('click', function() {
             eliminarAmigo(i);
         });
@@ -94,17 +172,18 @@ function actualizarListaAmigos() {
 }
 
 /**
- * Elimina un amigo de la lista por su índice.
- * @param {number} index - El índice del amigo a eliminar.
+ * Deletes a friend from the list by their index.
+ * @param {number} index - The index of the friend to delete.
  */
-function eliminarAmigo(index) {
+async function eliminarAmigo(index) {
     amigos.splice(index, 1);
+    await saveFriends(); // Save to Firebase
     actualizarListaAmigos();
 }
 
 /**
- * Función para barajar un arreglo (algoritmo Fisher-Yates).
- * @param {Array} array - El arreglo que se va a desordenar.
+ * Shuffles an array (Fisher-Yates algorithm).
+ * @param {Array} array - The array to be shuffled.
  */
 function barajar(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -114,10 +193,11 @@ function barajar(array) {
 }
 
 /**
- * Reinicia el sorteo completo.
+ * Resets the entire draw.
  */
-function reiniciar() {
+async function reiniciar() {
     amigos = [];
+    await saveFriends(); // Save to Firebase
     document.getElementById('listaAmigos').innerHTML = '';
     document.getElementById('resultado').innerHTML = '';
     limpiarErrores();
@@ -125,8 +205,8 @@ function reiniciar() {
 }
 
 /**
- * Muestra un mensaje de error en la UI.
- * @param {string} mensaje - El mensaje de error a mostrar.
+ * Displays an error message in the UI.
+ * @param {string} mensaje - The error message to display.
  */
 function mostrarError(mensaje) {
     errorMessage.textContent = mensaje;
@@ -134,7 +214,7 @@ function mostrarError(mensaje) {
 }
 
 /**
- * Limpia los mensajes y estilos de error.
+ * Clears error messages and styles.
  */
 function limpiarErrores() {
     errorMessage.textContent = '';
